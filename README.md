@@ -2,12 +2,20 @@
 
 Este projeto implementa um sistema de RAG utilizando Qdrant, OpenSearch e LLMSherpa para indexação e recuperação de documentos. O sistema permite fazer perguntas a partir de documentos carregados.
 
+## Instruções Gerais
+
+- **Para usar o notebook que está dentro da pasta haystack_components:**  
+  Basta seguir as instruções abaixo para configurar o Docker, instalar os requisitos e executar as células diretamente no notebook.
+
+- **Para rodar o código fora do notebook:**  
+  É necessário clonar o repositório: [https://github.com/guilhermevaz8/RAG_TAAC](https://github.com/guilhermevaz8/RAG_TAAC) e rodar `app.py` no branch `main`.
+
 ## Requisitos
 
 - **Python** 3.12.0
 - **Docker Desktop** (para executar Qdrant, OpenSearch e LLMSherpa)
 
-## Setup do Ambiente
+## Setup do Ambiente 
 
 1. **Instalar os requisitos:**
    - Crie um ambiente virtual e ative-o:
@@ -65,3 +73,5 @@ Este projeto implementa um sistema de RAG utilizando Qdrant, OpenSearch e LLMShe
 
     ```bash
     docker rm -f <container_id>
+
+
