@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>RAG Chat Interface</title>
+    <style>
+        /* Estilos básicos de reset e fonte */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #141e30, #243b55);
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #header {
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            background-color: rgba(0,0,0,0.6);
+            color: #ffdd57;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.5);
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: rgba(0,0,0,0.3);
+        }
+
+        /* Estilo para as mensagens */
+        .message {
+            display: flex;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .message.sent .message-text {
+            background: linear-gradient(135deg, #56ccf2, #2f80ed);
+            color: #fff;
+            margin-left: auto;
+            border-radius: 15px 15px 0 15px;
+            align-self: flex-end;
+        }
+
+        .message.received .message-text {
+            background: linear-gradient(135deg, #fab7a6, #ecbd98);
+            color: #fff;
+            margin-right: auto;
+            border-radius: 15px 15px 15px 0;
+        }
+
+        .message-text {
+            padding: 14px;
+            max-width: 70%;
+            word-wrap: break-word;
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Estilo da barra de entrada */
+        #input {
+            display: flex;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #input input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 30px;
+            background-color: #333;
+            color: #e0e0e0;
+            outline: none;
+            margin-right: 10px;
+        }
+
+        #input button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #ff8a00, #e52e71);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #input button:hover {
+            background: linear-gradient(135deg, #e52e71, #ff8a00);
+        }
+
+        /* Barra de rolagem personalizada */
+        #messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        #messages::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div id="header">
+    <h3>M:IA TAAC</h1>
+</div>
+
+<div id="messages">
+    {% for m in messages %}
+        <div class="message {{ 'sent' if m[0] == 'sender' else 'received' }}">
+            <div class="message-text">{{ m[1] }}</div>
+        </div>
+    {% endfor %}
+</div>
+
+<div id="input">
+    <form id="chatForm" style="display: flex; width: 100%;">
+        <input type="text" id="userMessage" placeholder="Type your message here..." required>
+        <button type="submit">Send</button>
+    </form>
+    <!-- Botão para selecionar ficheiro -->
+    <button id="uploadButton">Upload File</button>
+    <input type="file" id="fileInput" style="display: none;">
+</div>
+
+<script>
+    document.getElementById('uploadButton').addEventListener('click', function() {
+        document.getElementById('fileInput').click();
+    });
+    
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+    
+            fetch('/upload_file', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('File uploaded successfully!');
+                } else {
+                    alert('File upload failed.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    });
+    </script>
+    
+
+<script>
+
+    function scrollToBottom() {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+    document.getElementById('chatForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+    const message = document.getElementById('userMessage').value;
+    const messagesDiv = document.getElementById('messages');
+
+    // Exibe a mensagem do usuário imediatamente
+    const userMessageDiv = document.createElement('div');
+    userMessageDiv.classList.add('message', 'sent');
+    userMessageDiv.innerHTML = `<div class="message-text">${message}</div>`;
+    messagesDiv.appendChild(userMessageDiv);
+
+    scrollToBottom();
+    
+    document.getElementById('userMessage').value = '';
+
+    // Placeholder para a resposta do bot
+    const botMessageDiv = document.createElement('div');
+    botMessageDiv.classList.add('message', 'received');
+    botMessageDiv.innerHTML = `<div class="message-text">...</div>`;
+    messagesDiv.appendChild(botMessageDiv);
+    scrollToBottom();
+    // Envia a mensagem para o servidor
+    await fetch('/send_message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+    });
+
+    // Recebe a resposta em streaming
+    const response = await fetch('/stream_response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+
+    // Lê a resposta em partes e exibe gradualmente
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        fullResponse += decoder.decode(value, { stream: true });
+        botMessageDiv.innerHTML = `<div class="message-text">${fullResponse}</div>`;
+        scrollToBottom();
+    }
+    
+});
+</script>
+
+
+
+</body>
+</html>
